@@ -1,0 +1,39 @@
+-- Performance tuning and optimization checklist queries
+USE SCHEMA mfg_quality_dw.core;
+
+-- 1) Avoid SELECT * and scan only needed columns
+SELECT date_key, line_key, defect_count
+FROM fact_defects
+WHERE date_key BETWEEN 20240101 AND 20240131
+  AND line_key = 12;
+
+-- 2) Pre-aggregate heavy dashboard workloads
+SELECT
+    date_key,
+    line_key,
+    SUM(total_defects) AS defects
+FROM mv_daily_line_quality
+WHERE date_key >= 20240101
+GROUP BY date_key, line_key;
+
+-- 3) Identify top expensive queries from account usage
+SELECT
+    query_id,
+    query_text,
+    total_elapsed_time,
+    bytes_scanned,
+    partitions_scanned,
+    start_time
+FROM SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY
+WHERE start_time >= DATEADD('day', -7, CURRENT_TIMESTAMP())
+  AND database_name = 'MFG_QUALITY_DW'
+ORDER BY total_elapsed_time DESC
+LIMIT 20;
+
+-- 4) Check clustering quality
+SELECT SYSTEM$CLUSTERING_INFORMATION('mfg_quality_dw.core.fact_defects');
+
+-- 5) Use result cache validation (same query run repeatedly)
+SELECT factory_key, SUM(defect_count)
+FROM fact_defects
+GROUP BY factory_key;
