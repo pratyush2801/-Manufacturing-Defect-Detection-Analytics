@@ -1,0 +1,38 @@
+-- Snowflake optimization patterns
+USE SCHEMA mfg_quality_dw.core;
+
+-- Clustering for large fact tables (high-selectivity filters: date + factory + line)
+ALTER TABLE fact_defects CLUSTER BY (date_key, factory_key, line_key);
+ALTER TABLE fact_production CLUSTER BY (date_key, factory_key, line_key);
+
+-- Search optimization service for point-lookups on machine/event time
+ALTER TABLE fact_defects ADD SEARCH OPTIMIZATION ON EQUALITY(machine_key, event_ts);
+
+-- Materialized view for dashboard-heavy aggregate query
+CREATE OR REPLACE MATERIALIZED VIEW mv_daily_line_quality AS
+SELECT
+    date_key,
+    factory_key,
+    line_key,
+    SUM(defect_count) AS total_defects,
+    SUM(defect_cost) AS total_defect_cost
+FROM fact_defects
+GROUP BY date_key, factory_key, line_key;
+
+-- Time travel examples
+-- Query table as it existed 2 hours ago
+SELECT *
+FROM fact_defects AT (OFFSET => -60 * 60 * 2)
+LIMIT 100;
+
+-- Recover dropped table example
+-- UNDROP TABLE fact_defects;
+
+-- Semi-structured data access from VARIANT payload
+SELECT
+    defect_event_id,
+    sensor_payload:temperature::FLOAT AS temperature,
+    sensor_payload:vibration::FLOAT AS vibration,
+    sensor_payload:camera.confidence::FLOAT AS ai_confidence
+FROM fact_defects
+WHERE sensor_payload IS NOT NULL;
