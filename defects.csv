@@ -1,0 +1,8 @@
+event_ts,factory_id,line_id,machine_id,defect_type,defect_count
+2024-01-01 08:10:00,F001,L01,M01,Scratch,4
+2024-01-01 09:25:00,F001,L01,M02,Dent,2
+2024-01-01 11:40:00,F001,L02,M03,Alignment,1
+2024-01-02 10:15:00,F002,L03,M04,Scratch,3
+2024-01-02 13:00:00,F002,L03,M04,Crack,2
+2024-01-03 07:45:00,F001,L02,M03,Contamination,5
+2024-01-03 12:30:00,F001,L01,M01,Scratch,2
